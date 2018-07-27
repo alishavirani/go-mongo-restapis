@@ -41,10 +41,23 @@ var routes = Routes{
 		"PUT",
 		"/employee",
 		UpdateEmployee,
-	}, Route{
+	},
+	Route{
 		"DeleteEmployee",
 		"DELETE",
 		"/employee/{id}",
 		DeleteEmployee,
+	},
+	Route{
+		"RegisterEmployee",
+		"POST",
+		"/register",
+		RegisterEmployee,
+	},
+	Route{
+		"LoginUser",
+		"POST",
+		"/login",
+		LoginUser,
 	},
 }

@@ -29,7 +29,6 @@ func GetEmployees(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetEmployeeRecord(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("-----")
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Println("ID???", id)
@@ -79,7 +78,6 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteEmployee(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("-----")
 	vars := mux.Vars(r)
 	id := vars["id"]
 	fmt.Println("ID???", id)
@@ -115,9 +113,85 @@ func AddEmployee(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	if result := AddEmployeeToDb(employee); result {
 		fmt.Println("Added record to DB")
+		w.Write([]byte("Failed to insert to DB"))
+		w.WriteHeader(http.StatusOK)
 	} else {
 		fmt.Println("Failed to insert to DB")
+		w.Write([]byte("Failed to insert to DB"))
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func RegisterEmployee(w http.ResponseWriter, r *http.Request) {
+	var user UserAccess
+	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
+	if err != nil {
+		panic(err)
+	}
+	if err := r.Body.Close(); err != nil {
+		panic(err)
+	}
+	if err := json.Unmarshal(body, &user); err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(422) // unprocessable entity
+		if err := json.NewEncoder(w).Encode(err); err != nil {
+			panic(err)
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	if result := RegisterEmployeeToDb(user); result {
+		fmt.Println("Registered User In Db")
+		w.Write([]byte("Registered User In Db"))
+		w.WriteHeader(http.StatusOK)
+	} else {
+		fmt.Println("Failed to insert to DB")
+		w.Write([]byte("Failed to insert to DB"))
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func LoginUser(w http.ResponseWriter, r *http.Request) {
+	var user UserAccess
+	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
+	if err != nil {
+		panic(err)
+	}
+	if err := r.Body.Close(); err != nil {
+		panic(err)
+	}
+	if err := json.Unmarshal(body, &user); err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(422) // unprocessable entity
+		if err := json.NewEncoder(w).Encode(err); err != nil {
+			panic(err)
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	result, err := LoginDb(user)
+
+	if err != nil {
+		panic(err)
+	}
+	fmt.Print("Result????", result)
+	if result.Email == "" {
+		fmt.Println("Registered User In Db")
+		w.Write([]byte("Registered User In Db"))
+		w.WriteHeader(http.StatusOK)
+	} else {
+		fmt.Println("Logged in successfully")
+		w.Write([]byte("Logged in successfully"))
+		w.WriteHeader(http.StatusOK)
 	}
 }

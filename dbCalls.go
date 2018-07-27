@@ -12,7 +12,46 @@ const SERVER = "mongodb://localhost/go-rest-api"
 
 const DBNAME = "go-rest-api"
 
-const COLLECTION = "employees"
+const EMPCOLLECTION = "employees"
+
+const ACCESSCOLLECTION = "access"
+
+func RegisterEmployeeToDb(user UserAccess) bool {
+	session, err := mgo.Dial(SERVER)
+	if err != nil {
+		log.Fatal(err)
+		return false
+	}
+	defer session.Close()
+
+	session.DB(DBNAME).C(ACCESSCOLLECTION).Insert(user)
+	if err != nil {
+		log.Fatal(err)
+		return false
+	}
+
+	fmt.Println("Registered new emp- ", user)
+	return true
+}
+
+func LoginDb(user UserAccess) (UserInDb UserAccess, err error) {
+	var result UserAccess
+	session, err := mgo.Dial(SERVER)
+	if err != nil {
+		log.Fatal(err)
+		return result, err
+	}
+	defer session.Close()
+
+	c := session.DB(DBNAME).C(ACCESSCOLLECTION)
+
+	filter := bson.M{"email": user.Email}
+
+	if err := c.Find(&filter).One(&result); err != nil {
+		return result, nil
+	}
+	return result, nil
+}
 
 func AddEmployeeToDb(employee Employee) bool {
 	session, err := mgo.Dial(SERVER)
@@ -22,7 +61,7 @@ func AddEmployeeToDb(employee Employee) bool {
 	}
 	defer session.Close()
 
-	session.DB(DBNAME).C(COLLECTION).Insert(employee)
+	session.DB(DBNAME).C(EMPCOLLECTION).Insert(employee)
 	if err != nil {
 		log.Fatal(err)
 		return false
@@ -40,7 +79,7 @@ func FetchAllEmployeesFromDb() (Employees, error) {
 	}
 	defer session.Close()
 
-	c := session.DB(DBNAME).C(COLLECTION)
+	c := session.DB(DBNAME).C(EMPCOLLECTION)
 
 	results := Employees{}
 
@@ -61,15 +100,14 @@ func GetEmployeeById(id string) (Employees, error) {
 	}
 	defer session.Close()
 
-	c := session.DB(DBNAME).C(COLLECTION)
+	c := session.DB(DBNAME).C(EMPCOLLECTION)
 	result := Employees{}
 
 	filter := bson.M{"id": id}
 
-	fmt.Println("filter????", filter)
-
 	if err := c.Find(&filter).Limit(5).All(&result); err != nil {
-		fmt.Println("Failed to write result:", err)
+		log.Fatal(err)
+		return nil, err
 	}
 	return result, nil
 }
@@ -85,7 +123,7 @@ func UpdateEmployeeById(employee Employee) (bool, error) {
 
 	filter := bson.M{"id": employee.ID}
 
-	err = session.DB(DBNAME).C(COLLECTION).Update(&filter, employee)
+	err = session.DB(DBNAME).C(EMPCOLLECTION).Update(&filter, employee)
 
 	if err != nil {
 		log.Fatal(err)
@@ -104,11 +142,9 @@ func DeleteEmployeeById(id string) (bool, error) {
 	}
 	defer session.Close()
 
-	filter := bson.M{"id": "101"}
+	filter := bson.M{"id": id}
 
-	fmt.Println("Filter????", filter)
-
-	if err = session.DB(DBNAME).C(COLLECTION).Remove(&filter); err != nil {
+	if err = session.DB(DBNAME).C(EMPCOLLECTION).Remove(&filter); err != nil {
 		log.Fatal(err)
 		return false, err
 	}
