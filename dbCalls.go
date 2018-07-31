@@ -92,22 +92,29 @@ func FetchAllEmployeesFromDb() (Employees, error) {
 
 }
 
-func GetEmployeeById(id string) (Employees, error) {
+func GetEmployeeById(id string) (Employee, error) {
 	session, err := mgo.Dial(SERVER)
+
+	var result Employee
+
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
+		return result, err
 	}
 	defer session.Close()
 
 	c := session.DB(DBNAME).C(EMPCOLLECTION)
-	result := Employees{}
 
 	filter := bson.M{"id": id}
 
-	if err := c.Find(&filter).Limit(5).All(&result); err != nil {
+	if err := c.Find(&filter).One(&result); err != nil {
+		fmt.Println("printing error in db", err)
+
+		if err.Error() == "not found" {
+			return result, nil
+		}
 		log.Fatal(err)
-		return nil, err
+		return result, err
 	}
 	return result, nil
 }
@@ -123,13 +130,13 @@ func UpdateEmployeeById(employee Employee) (bool, error) {
 
 	filter := bson.M{"id": employee.ID}
 
-	err = session.DB(DBNAME).C(EMPCOLLECTION).Update(&filter, employee)
-
-	if err != nil {
+	if err = session.DB(DBNAME).C(EMPCOLLECTION).Update(&filter, employee); err != nil {
+		if err.Error() == "not found" {
+			return false, nil
+		}
 		log.Fatal(err)
 		return false, err
 	}
-
 	return true, nil
 }
 
@@ -145,6 +152,10 @@ func DeleteEmployeeById(id string) (bool, error) {
 	filter := bson.M{"id": id}
 
 	if err = session.DB(DBNAME).C(EMPCOLLECTION).Remove(&filter); err != nil {
+
+		if err.Error() == "not found" {
+			return false, nil
+		}
 		log.Fatal(err)
 		return false, err
 	}
